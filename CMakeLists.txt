@@ -11,11 +11,11 @@ set(CMAKE_BUILD_TYPE Debug)
 if(DEFINED ARCH)
   if(${ARCH} STREQUAL "RASPBERRY")
     message("-- Created ${ARCH} compilation.")  
-    set (LIBS hardware interface)
+    set (LIBS hardware interface rt)
     set (FOLDER "raspberry")  
   elseif(${ARCH} STREQUAL "PC")
     message("-- Created ${ARCH} compilation.") 
-    set (LIBS interface)
+    set (LIBS interface rt)
     set (FOLDER "pc")
   endif()
 else()
@@ -28,9 +28,22 @@ else()
   message(FATAL_ERROR "")
 endif()
 
+#build lib posix_queue
+add_library(posix_queue "")
+
+target_sources(posix_queue
+  PUBLIC 
+  ${CMAKE_CURRENT_LIST_DIR}/lib/posix_queue.c
+  )
+
+target_include_directories(posix_queue 
+  PUBLIC 
+  ${CMAKE_CURRENT_LIST_DIR}/lib  
+  )
+
 #build lib interface
 add_library(interface "")
-
+target_link_libraries(interface PUBLIC posix_queue)
 target_sources(interface
   PUBLIC 
   ${CMAKE_CURRENT_LIST_DIR}/src/led_interface.c
@@ -40,6 +53,7 @@ target_sources(interface
 target_include_directories(interface 
   PUBLIC 
   ${CMAKE_CURRENT_LIST_DIR}/include  
+  ${CMAKE_CURRENT_LIST_DIR}/lib 
   )
 
 install(TARGETS interface DESTINATION bin)

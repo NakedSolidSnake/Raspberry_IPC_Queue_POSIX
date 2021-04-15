@@ -10,6 +10,17 @@ int main(int argc, char const *argv[])
     int pid_button, pid_led;
     int button_status, led_status;
 
+    pid_led = fork();
+
+    if(pid_led == 0)
+    {
+        //Start led process
+        char *args[] = {"./led_process", NULL};
+        led_status = execvp(args[0], args);
+        printf("Error to start led process, status = %d\n", led_status);
+        abort();
+    }
+
     pid_button = fork();
 
     if(pid_button == 0)
@@ -21,16 +32,7 @@ int main(int argc, char const *argv[])
         abort();
     }   
 
-    pid_led = fork();
-
-    if(pid_led == 0)
-    {
-        //Start led process
-        char *args[] = {"./led_process", NULL};
-        led_status = execvp(args[0], args);
-        printf("Error to start led process, status = %d\n", led_status);
-        abort();
-    }
+    
 
     return EXIT_SUCCESS;
 }

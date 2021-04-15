@@ -22,7 +22,13 @@ int main(int argc, char *argv[])
         .Read = Read
     };
 
-    Button_Run(NULL, &button_interface);
+    POSIX_Queue posix_queue = 
+    {
+        .name = "/queue",      
+        .mode = write_mode
+    };
+
+    Button_Run(NULL, &posix_queue, &button_interface);
         
     return 0;
 }

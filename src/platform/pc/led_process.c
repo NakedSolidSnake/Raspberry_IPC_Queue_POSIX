@@ -19,8 +19,16 @@ int main(int argc, char *argv[])
         .Init = Init,
         .Set = Set
     };
+    
+    POSIX_Queue posix_queue = 
+    {
+        .name = "/queue",
+        .max_message = 10,
+        .message_size = 256,
+        .mode = read_mode 
+    };
 
-    LED_Run(NULL, &led_interface);
+    LED_Run(NULL, &posix_queue, &led_interface);
     
     return 0;
 }
