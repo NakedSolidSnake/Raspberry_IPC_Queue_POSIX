@@ -7,11 +7,11 @@
 #include <unistd.h>
 #include <led_interface.h>
 
-#define BUFFER_SIZE		5
+#define BUFFER_OFFSET	10
 
 bool LED_Run(void *object, POSIX_Queue *posix_queue, LED_Interface *led)
 {
-	char buffer[BUFFER_SIZE];
+	char buffer[posix_queue->message_size + BUFFER_OFFSET];
 	int state;
 
 	if(led->Init(object) == false)
@@ -22,11 +22,11 @@ bool LED_Run(void *object, POSIX_Queue *posix_queue, LED_Interface *led)
 
 	while(true)
 	{
-		if(POSIX_Queue_Receive(posix_queue, buffer, BUFFER_SIZE) == true)
+		memset(buffer, 0, posix_queue->message_size + BUFFER_OFFSET);
+		if(POSIX_Queue_Receive(posix_queue, buffer, posix_queue->message_size + BUFFER_OFFSET) == true)
 		{
 			sscanf(buffer, "%d", &state);
-			// led->Set(object, state);
-			printf("Read: %s\n", buffer);
+			led->Set(object, state);
 		}
 	}
 

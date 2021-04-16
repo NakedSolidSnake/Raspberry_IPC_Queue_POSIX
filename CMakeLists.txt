@@ -30,7 +30,7 @@ endif()
 
 #build lib posix_queue
 add_library(posix_queue "")
-
+target_link_libraries(posix_queue PUBLIC m)
 target_sources(posix_queue
   PUBLIC 
   ${CMAKE_CURRENT_LIST_DIR}/lib/posix_queue.c

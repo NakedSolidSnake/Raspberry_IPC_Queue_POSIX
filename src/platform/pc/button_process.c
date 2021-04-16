@@ -24,7 +24,8 @@ int main(int argc, char *argv[])
 
     POSIX_Queue posix_queue = 
     {
-        .name = "/queue",      
+        .name = "/queue",
+        .message_size = 256,      
         .mode = write_mode
     };
 

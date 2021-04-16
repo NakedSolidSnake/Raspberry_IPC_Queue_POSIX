@@ -28,8 +28,14 @@ int main(int argc, char *argv[])
         .Read = Read
     };
 
-    Button_Run(&button, &button_interface);
-        
+    POSIX_Queue posix_queue = 
+    {
+        .name = "/queue",
+        .message_size = 256,      
+        .mode = write_mode
+    };
+
+    Button_Run(&button, &posix_queue, &button_interface);
     return 0;
 }
 
