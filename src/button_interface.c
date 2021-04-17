@@ -9,6 +9,22 @@
 
 #define _1ms            1000
 
+static void wait_press(void *object, Button_Interface *button)
+{
+    while (true)
+    {
+        if (!button->Read(object))
+        {
+            usleep(_1ms * 100);
+            break;
+        }
+        else
+        {
+            usleep(_1ms);
+        }
+    }
+}
+
 bool Button_Run(void *object, POSIX_Queue *posix_queue, Button_Interface *button)
 {
     char buffer[posix_queue->message_size];
@@ -21,15 +37,7 @@ bool Button_Run(void *object, POSIX_Queue *posix_queue, Button_Interface *button
 
     while(true)
     {
-        while(true)
-        {
-            if(!button->Read(object)){
-                usleep(_1ms * 100);
-                break;
-            }else{
-                usleep( _1ms );
-            }
-        }
+        wait_press(object, button);
 
         state ^= 0x01;
         memset(buffer, 0, posix_queue->message_size);
