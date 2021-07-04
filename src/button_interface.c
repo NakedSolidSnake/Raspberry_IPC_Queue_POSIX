@@ -45,7 +45,5 @@ bool Button_Run(void *object, POSIX_Queue *posix_queue, Button_Interface *button
         POSIX_Queue_Send(posix_queue, buffer, strlen(buffer));
     }
 
-    printf("Exiting.\n");
-
     return false;
 }

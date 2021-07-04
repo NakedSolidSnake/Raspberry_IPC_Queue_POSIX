@@ -29,6 +29,115 @@ Preencher
 
 ## Implementação
 
+### *posix_queue.h*
+```c
+typedef enum 
+{
+    write_mode,
+    read_mode
+} Mode;
+
+typedef struct 
+{
+    char *name;
+    int id;
+    int max_message;
+    int message_size;
+    Mode mode;
+} POSIX_Queue;
+```
+
+```c
+bool POSIX_Queue_Init(POSIX_Queue *posix_queue);
+bool POSIX_Queue_Send(POSIX_Queue *posix_queue, const char *message, int message_size);
+bool POSIX_Queue_Receive(POSIX_Queue *posix_queue, char *buffer, int buffer_size);
+bool POSIX_Queue_Cleanup(POSIX_Queue *posix_queue);
+```
+### *posix_queue.c*
+```c
+bool POSIX_Queue_Init(POSIX_Queue *posix_queue)
+{
+    bool status = false;
+    struct mq_attr attr;
+
+    attr.mq_flags = 0;
+    attr.mq_maxmsg = posix_queue->max_message;
+    attr.mq_msgsize = posix_queue->message_size;
+    attr.mq_curmsgs = 0;
+    
+    if(posix_queue->mode == write_mode)
+    {
+        posix_queue->id = mq_open(posix_queue->name, O_WRONLY, &attr);
+    }
+    else if(posix_queue->mode == read_mode)
+    {   
+        posix_queue->id = mq_open(posix_queue->name, O_RDONLY | O_CREAT, QUEUE_PERMISSIONS, &attr);
+    }
+
+    if(posix_queue->id >= 0)
+        status = true;    
+
+    return status;
+}
+```
+
+```c
+bool POSIX_Queue_Send(POSIX_Queue *posix_queue, const char *message, int message_size)
+{
+    bool status = false;
+    ssize_t written = 0;
+
+    if(posix_queue && message_size > 0)
+    {
+        written = mq_send(posix_queue->id, message, fmin(message_size, posix_queue->message_size - 1), 0);
+        if(written >= 0)
+            status = true;
+    }
+
+    return status;
+}
+```
+
+```c
+bool POSIX_Queue_Receive(POSIX_Queue *posix_queue, char *buffer, int buffer_size)
+{
+    bool status = false;
+    ssize_t receive = 0;
+
+    if(posix_queue && buffer && buffer_size > 0)
+    {
+        receive = mq_receive(posix_queue->id, buffer, fmax(buffer_size, posix_queue->message_size + 10), NULL);
+        if(receive >= 0)
+            status = true;
+    }
+        
+
+    return status;
+}
+```
+
+```c
+bool POSIX_Queue_Cleanup(POSIX_Queue *posix_queue)
+{
+    bool status = false;
+
+    do 
+    {
+        if(!posix_queue)
+            break;
+
+        if(posix_queue->id <= 0)
+            break;
+
+        mq_close(posix_queue->id);
+        mq_unlink(posix_queue->name);
+        status = true;
+    } while(false);
+
+    return status;
+}
+```
+
 Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado interno no arquivo, e o Consumidor(_led_process_) vai ler o estado interno e vai aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
 * _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ atráves da combinação _fork_ e _exec_
 * _button_interface_ - é reponsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
@@ -71,10 +180,86 @@ if(pid_led == 0)
 }
 ```
 
-## *button_interface*
-descrever o código
-## *led_interface*
-descrever o código
+### *button_interface.h*
+```c
+typedef struct 
+{
+    bool (*Init)(void *object);
+    bool (*Read)(void *object);
+    
+} Button_Interface;
+```
+
+```c
+bool Button_Run(void *object, POSIX_Queue *posix_queue, Button_Interface *button);
+```
+### *button_interface.c*
+```c
+bool Button_Run(void *object, POSIX_Queue *posix_queue, Button_Interface *button)
+{
+    char buffer[posix_queue->message_size];
+    int state = 0;
+    if(button->Init(object) == false)
+        return false;
+
+    if(POSIX_Queue_Init(posix_queue) == false)
+        return false;
+
+    while(true)
+    {
+        wait_press(object, button);
+
+        state ^= 0x01;
+        memset(buffer, 0, posix_queue->message_size);
+        snprintf(buffer, posix_queue->message_size, "%d", state);
+        POSIX_Queue_Send(posix_queue, buffer, strlen(buffer));
+    }
+
+    return false;
+}
+```
+
+### *led_interface.h*
+```c
+typedef struct 
+{
+    bool (*Init)(void *object);
+    bool (*Set)(void *object, uint8_t state);
+} LED_Interface;
+```
+
+```c
+bool LED_Run(void *object, POSIX_Queue *posix_queue, LED_Interface *led);
+```
+
+### *led_interface.c*
+```c
+bool LED_Run(void *object, POSIX_Queue *posix_queue, LED_Interface *led)
+{
+	char buffer[posix_queue->message_size + BUFFER_OFFSET];
+	int state;
+
+	if(led->Init(object) == false)
+		return false;
+
+	if(POSIX_Queue_Init(posix_queue) == false)
+		return false;
+
+	while(true)
+	{
+		memset(buffer, 0, posix_queue->message_size + BUFFER_OFFSET);
+		if(POSIX_Queue_Receive(posix_queue, buffer, posix_queue->message_size + BUFFER_OFFSET) == true)
+		{
+			sscanf(buffer, "%d", &state);
+			led->Set(object, state);
+		}
+	}
+
+	POSIX_Queue_Cleanup(posix_queue);
+
+	return false;	
+}
+```
 
 ## Compilando, Executando e Matando os processos
 Para compilar e testar o projeto é necessário instalar a biblioteca de [hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware) necessária para resolver as dependências de configuração de GPIO da Raspberry Pi.

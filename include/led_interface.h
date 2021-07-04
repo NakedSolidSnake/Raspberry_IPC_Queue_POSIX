@@ -1,5 +1,5 @@
-#ifndef LED_INTERFACE_H_
-#define LED_INTERFACE_H_
+#ifndef LED_INTERFACE_H
+#define LED_INTERFACE_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -26,4 +26,4 @@ typedef struct
  */
 bool LED_Run(void *object, POSIX_Queue *posix_queue, LED_Interface *led);
 
-#endif /* LED_INTERFACE_H_ */
+#endif /* LED_INTERFACE_H */
