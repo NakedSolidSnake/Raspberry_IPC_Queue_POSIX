@@ -26,7 +26,7 @@
 * [Referência](#referência)
 
 ## Introdução
-POSIX Queue é uma tentativa de padronização desse recurso para que fosse altamente portável entre os sistemas. Não difere tanto da Queue System V, mas possui um recurso de notificação assíncrona.
+POSIX Queue é uma padronização desse recurso para que fosse altamente portável entre os sistemas. Não difere tanto da Queue System V, mas possui um recurso de notificação assíncrona.
 
 ## Systemcalls
 Para que essas systemcalls funcione é necessário linkar com o a biblioteca rt.
