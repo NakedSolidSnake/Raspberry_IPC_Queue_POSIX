@@ -25,11 +25,90 @@
 * [Referência](#referência)
 
 ## Introdução
-Preencher
+POSIX Queue é uma tentativa de padronização desse recurso para que fosse altamente portável entre os sistemas. Não difere tanto da Queue System V, mas possui um recurso de notificação assincrona.
+
+## Systemcalls
+Para que essas systemcalls funcione é necessário linkar com o a biblioteca rt.
+
+Permite a criação da queue de modo simplificado, ou de modo configurado.
+```c
+#include <fcntl.h>           /* For O_* constants */
+#include <sys/stat.h>        /* For mode constants */
+#include <mqueue.h>
+
+mqd_t mq_open(const char *name, int oflag);
+mqd_t mq_open(const char *name, int oflag, mode_t mode, struct mq_attr *attr);
+```
+
+Permite que a mensagem seja enviada para a queue. Existe um variante com paramêtro de timeout
+```c
+#include <mqueue.h>
+
+int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio);
+
+#include <time.h>
+#include <mqueue.h>
+
+int mq_timedsend(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio, const struct timespec *abs_timeout);
+```
+
+Permite que a mensagem seja lida da queue. Existe um variante com paramêtro de timeout
+```c
+#include <mqueue.h>
+
+ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio);
+
+#include <time.h>
+#include <mqueue.h>
+
+ssize_t mq_timedreceive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio, const struct timespec *abs_timeout);
+```
+
+Diferente da Queue System V, a queue do POSIX permite notificar o recebimento da mensagem de forma assincrona
+```c
+#include <mqueue.h>
+
+int mq_notify(mqd_t mqdes, const struct sigevent *sevp);
+```
+
+Permite realizar a leitura dos atributos da Queue.
+```c
+#include <mqueue.h>
+
+int mq_getattr(mqd_t mqdes, struct mq_attr *attr);
+```
+
+Permite parametrizar uma queue, podendo realizar um backup da configurações atuais.
+```c
+#include <mqueue.h>
+
+int mq_setattr(mqd_t mqdes, const struct mq_attr *newattr, struct mq_attr *oldattr);
+```
+
+Fecha o descritor da queue
+```c
+#include <mqueue.h>
+
+int mq_close(mqd_t mqdes);
+```
+
+Remove o nome associado a Queue
+```c
+#include <mqueue.h>
+
+int mq_unlink(const char *name);
+```
+
+Para saber mais utilize o man pages para obter mais infomações sobre as Queues
+```bash
+$ man mq_overview
+```
 
 ## Implementação
+Para facilitar o uso desse mecanismo, o uso da API referente a Queue POSIX é feita através de uma abstração na forma de uma biblioteca.
 
 ### *posix_queue.h*
+Para determinar como o processo vai usar a Queue foi definido um enum que representa o modo que a Queue vai operar, seguido de uma estrutura que representa o contexto necessário para sua utilização.
 ```c
 typedef enum 
 {
@@ -46,7 +125,7 @@ typedef struct
     Mode mode;
 } POSIX_Queue;
 ```
-
+Aqui é apresentada a API que abstrai as particularidades da API, facilitando seu uso.
 ```c
 bool POSIX_Queue_Init(POSIX_Queue *posix_queue);
 bool POSIX_Queue_Send(POSIX_Queue *posix_queue, const char *message, int message_size);
@@ -54,6 +133,8 @@ bool POSIX_Queue_Receive(POSIX_Queue *posix_queue, char *buffer, int buffer_size
 bool POSIX_Queue_Cleanup(POSIX_Queue *posix_queue);
 ```
 ### *posix_queue.c*
+
+Aqui em POSIX_Queue_Init, a estrutura referente aos atributos da queue é criada, e recebe os parâmetros providos pelo contexto, dependendo do modo em que a queue vai operar definirá a abertura do arquivo. Caso a inicialização da queue seja concluída com sucesso retornará true.
 ```c
 bool POSIX_Queue_Init(POSIX_Queue *posix_queue)
 {
@@ -80,7 +161,7 @@ bool POSIX_Queue_Init(POSIX_Queue *posix_queue)
     return status;
 }
 ```
-
+O envio da mensagem para a queue tem um ponto meio peculiar a mensagem deve ser menor que o valor estabelecido na sua configuração. Dessa forma é verificado se o tamanho da mensagem a ser enviada é menor que o valor atribuido na sua inicialização.
 ```c
 bool POSIX_Queue_Send(POSIX_Queue *posix_queue, const char *message, int message_size)
 {
@@ -97,7 +178,7 @@ bool POSIX_Queue_Send(POSIX_Queue *posix_queue, const char *message, int message
     return status;
 }
 ```
-
+Na recepção da mensagem também existe uma peculiaridade, o buffer precisa ser maior que o configurado na sua inicialização, dessa forma é verificado o size do buffer utilizado por argumento versus o buffer do contexto.
 ```c
 bool POSIX_Queue_Receive(POSIX_Queue *posix_queue, char *buffer, int buffer_size)
 {
@@ -116,6 +197,7 @@ bool POSIX_Queue_Receive(POSIX_Queue *posix_queue, char *buffer, int buffer_size
 }
 ```
 
+Para remover a queue é utilizado seu id para ser fechada e o arquivo apagado
 ```c
 bool POSIX_Queue_Cleanup(POSIX_Queue *posix_queue)
 {
@@ -181,6 +263,7 @@ if(pid_led == 0)
 ```
 
 ### *button_interface.h*
+Para usar a interface do botão precisa implementar essas duas callbacks para permitir o seu uso
 ```c
 typedef struct 
 {
@@ -190,10 +273,13 @@ typedef struct
 } Button_Interface;
 ```
 
+A assinatura do uso da interface corresponde ao contexto do botão, que depende do modo selecionado, o contexo da Queue, e a interface do botão devidamente preenchida.
 ```c
 bool Button_Run(void *object, POSIX_Queue *posix_queue, Button_Interface *button);
 ```
+
 ### *button_interface.c*
+A implementação da interface baseia-se em inicializar o botão, inicializar a Queue, e no loop realiza a mensagem para queue mediante o pressionamento do botão.
 ```c
 bool Button_Run(void *object, POSIX_Queue *posix_queue, Button_Interface *button)
 {
@@ -220,6 +306,7 @@ bool Button_Run(void *object, POSIX_Queue *posix_queue, Button_Interface *button
 ```
 
 ### *led_interface.h*
+Para realizar o uso da interface de LED é necessário preencher os callbacks que serão utilizados pela implementação da interface, sendo a inicialização e a função que altera o estado do LED.
 ```c
 typedef struct 
 {
@@ -228,11 +315,13 @@ typedef struct
 } LED_Interface;
 ```
 
+A assinatura do uso da interface corresponde ao contexto do LED, que depende do modo selecionado, o contexo da Queue, e a interface do LED devidamente preenchida.
 ```c
 bool LED_Run(void *object, POSIX_Queue *posix_queue, LED_Interface *led);
 ```
 
 ### *led_interface.c*
+A implementação da interface baseia-se em inicializar o LED, inicializar a Queue, e no loop realiza a leitura da mensagem
 ```c
 bool LED_Run(void *object, POSIX_Queue *posix_queue, LED_Interface *led)
 {
@@ -346,7 +435,7 @@ $ ./kill_process.sh
 ```
 
 ## Conclusão
-Preencher
+POSIX Queue é uma alternativa ao Queue System V, porém com a idéia de ser portável, porém a Queue System V permanece até os dias de hoje, devido a quantidade de aplicações criadas devido à esse recurso, o que ainda dá muita força no seu uso. 
 
 ## Referência
 * [Link do projeto completo](https://github.com/NakedSolidSnake/Raspberry_IPC_Queue_POSIX)
