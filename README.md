@@ -26,7 +26,7 @@
 * [Referência](#referência)
 
 ## Introdução
-POSIX Queue é uma tentativa de padronização desse recurso para que fosse altamente portável entre os sistemas. Não difere tanto da Queue System V, mas possui um recurso de notificação assincrona.
+POSIX Queue é uma tentativa de padronização desse recurso para que fosse altamente portável entre os sistemas. Não difere tanto da Queue System V, mas possui um recurso de notificação assíncrona.
 
 ## Systemcalls
 Para que essas systemcalls funcione é necessário linkar com o a biblioteca rt.
@@ -41,7 +41,7 @@ mqd_t mq_open(const char *name, int oflag);
 mqd_t mq_open(const char *name, int oflag, mode_t mode, struct mq_attr *attr);
 ```
 
-Permite que a mensagem seja enviada para a queue. Existe um variante com paramêtro de timeout
+Permite que a mensagem seja enviada para a queue. Existe uma variante com paramêtro de timeout
 ```c
 #include <mqueue.h>
 
@@ -53,7 +53,7 @@ int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_p
 int mq_timedsend(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio, const struct timespec *abs_timeout);
 ```
 
-Permite que a mensagem seja lida da queue. Existe um variante com paramêtro de timeout
+Permite que a mensagem seja lida da queue. Existe uma variante com paramêtro de timeout
 ```c
 #include <mqueue.h>
 
@@ -65,7 +65,7 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
 ssize_t mq_timedreceive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio, const struct timespec *abs_timeout);
 ```
 
-Diferente da Queue System V, a queue do POSIX permite notificar o recebimento da mensagem de forma assincrona
+Diferente da Queue System V, a queue do POSIX permite notificar o recebimento da mensagem de forma assíncrona
 ```c
 #include <mqueue.h>
 
@@ -79,7 +79,7 @@ Permite realizar a leitura dos atributos da Queue.
 int mq_getattr(mqd_t mqdes, struct mq_attr *attr);
 ```
 
-Permite parametrizar uma queue, podendo realizar um backup da configurações atuais.
+Permite parametrizar uma queue, podendo realizar um backup das configurações atuais.
 ```c
 #include <mqueue.h>
 
@@ -100,7 +100,7 @@ Remove o nome associado a Queue
 int mq_unlink(const char *name);
 ```
 
-Para saber mais utilize o man pages para obter mais infomações sobre as Queues
+Para saber mais utilize o man pages para obter mais informações sobre as Queues
 ```bash
 $ man mq_overview
 ```
@@ -222,9 +222,9 @@ bool POSIX_Queue_Cleanup(POSIX_Queue *posix_queue)
 ```
 
 Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado interno no arquivo, e o Consumidor(_led_process_) vai ler o estado interno e vai aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
-* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ atráves da combinação _fork_ e _exec_
-* _button_interface_ - é reponsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
-* _led_interface_ - é reponsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
+* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ através da combinação _fork_ e _exec_
+* _button_interface_ - é responsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
+* _led_interface_ - é responsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
 
 ### *launch_processes*
 
